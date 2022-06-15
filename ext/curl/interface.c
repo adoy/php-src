@@ -223,7 +223,6 @@ static zend_object_handlers curl_object_handlers;
 static zend_object *curl_create_object(zend_class_entry *class_type);
 static void curl_free_obj(zend_object *object);
 static HashTable *curl_get_gc(zend_object *object, zval **table, int *n);
-static zend_function *curl_get_constructor(zend_object *object);
 static zend_object *curl_clone_obj(zend_object *object);
 php_curl *init_curl_handle_into_zval(zval *curl);
 static inline zend_result build_mime_structure_from_hash(php_curl *ch, zval *zpostfields);
@@ -1334,7 +1333,6 @@ PHP_MINIT_FUNCTION(curl)
 	curl_object_handlers.offset = XtOffsetOf(php_curl, std);
 	curl_object_handlers.free_obj = curl_free_obj;
 	curl_object_handlers.get_gc = curl_get_gc;
-	curl_object_handlers.get_constructor = curl_get_constructor;
 	curl_object_handlers.clone_obj = curl_clone_obj;
 	curl_object_handlers.cast_object = curl_cast_object;
 	curl_object_handlers.compare = zend_objects_not_comparable;
@@ -1360,11 +1358,6 @@ static zend_object *curl_create_object(zend_class_entry *class_type) {
 	intern->std.handlers = &curl_object_handlers;
 
 	return &intern->std;
-}
-
-static zend_function *curl_get_constructor(zend_object *object) {
-	zend_throw_error(NULL, "Cannot directly construct CurlHandle, use curl_init() instead");
-	return NULL;
 }
 
 static zend_object *curl_clone_obj(zend_object *object) {
@@ -2036,8 +2029,7 @@ static void _php_curl_set_default_options(php_curl *ch)
 }
 /* }}} */
 
-/* {{{ Initialize a cURL session */
-PHP_FUNCTION(curl_init)
+static void _php_curl_init(INTERNAL_FUNCTION_PARAMETERS)
 {
 	php_curl *ch;
 	CURL 	 *cp;
@@ -2048,13 +2040,15 @@ PHP_FUNCTION(curl_init)
 		Z_PARAM_STR_OR_NULL(url)
 	ZEND_PARSE_PARAMETERS_END();
 
+	ch = Z_CURL_P(return_value);
+	init_curl_handle(ch);
+
 	cp = curl_easy_init();
 	if (!cp) {
 		php_error_docref(NULL, E_WARNING, "Could not initialize a new cURL handle");
+		zval_ptr_dtor(return_value);
 		RETURN_FALSE;
 	}
-
-	ch = init_curl_handle_into_zval(return_value);
 
 	ch->cp = cp;
 
@@ -2070,6 +2064,19 @@ PHP_FUNCTION(curl_init)
 			RETURN_FALSE;
 		}
 	}
+}
+
+/* {{{ Initialize a cURL session */
+PHP_METHOD(CurlHandle, __construct)
+{
+	return_value = ZEND_THIS;
+	_php_curl_init(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+}
+
+PHP_FUNCTION(curl_init)
+{
+	object_init_ex(return_value, curl_ce);
+	_php_curl_init(INTERNAL_FUNCTION_PARAM_PASSTHRU);
 }
 /* }}} */
 
@@ -3291,11 +3298,9 @@ PHP_FUNCTION(curl_setopt)
 	zend_long        options;
 	php_curl   *ch;
 
-	ZEND_PARSE_PARAMETERS_START(3, 3)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-		Z_PARAM_LONG(options)
-		Z_PARAM_ZVAL(zvalue)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Olz", &zid, curl_ce, &options, &zvalue) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3315,10 +3320,9 @@ PHP_FUNCTION(curl_setopt_array)
 	zend_ulong	option;
 	zend_string	*string_key;
 
-	ZEND_PARSE_PARAMETERS_START(2, 2)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-		Z_PARAM_ARRAY(arr)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Oa", &zid, curl_ce, &arr) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3360,9 +3364,9 @@ PHP_FUNCTION(curl_exec)
 	zval		*zid;
 	php_curl	*ch;
 
-	ZEND_PARSE_PARAMETERS_START(1, 1)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "O", &zid, curl_ce) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3415,11 +3419,9 @@ PHP_FUNCTION(curl_getinfo)
 	zend_long	option;
 	bool option_is_null = 1;
 
-	ZEND_PARSE_PARAMETERS_START(1, 2)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-		Z_PARAM_OPTIONAL
-		Z_PARAM_LONG_OR_NULL(option, option_is_null)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "O|l!", &zid, curl_ce, &option, &option_is_null) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3699,9 +3701,9 @@ PHP_FUNCTION(curl_errno)
 	zval		*zid;
 	php_curl	*ch;
 
-	ZEND_PARSE_PARAMETERS_START(1,1)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "O", &zid, curl_ce) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3898,9 +3900,9 @@ PHP_FUNCTION(curl_reset)
 	zval       *zid;
 	php_curl   *ch;
 
-	ZEND_PARSE_PARAMETERS_START(1, 1)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "O", &zid, curl_ce) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3923,10 +3925,9 @@ PHP_FUNCTION(curl_escape)
 	zval        *zid;
 	php_curl    *ch;
 
-	ZEND_PARSE_PARAMETERS_START(2,2)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-		Z_PARAM_STR(str)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "OS", &zid, curl_ce, &str) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3952,10 +3953,9 @@ PHP_FUNCTION(curl_unescape)
 	zend_string *str;
 	php_curl    *ch;
 
-	ZEND_PARSE_PARAMETERS_START(2,2)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-		Z_PARAM_STR(str)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "OS", &zid, curl_ce, &str) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3979,10 +3979,9 @@ PHP_FUNCTION(curl_pause)
 	zval       *zid;
 	php_curl   *ch;
 
-	ZEND_PARSE_PARAMETERS_START(2,2)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-		Z_PARAM_LONG(bitmask)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Ol", &zid, curl_ce, &bitmask) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 
@@ -3998,9 +3997,9 @@ PHP_FUNCTION(curl_upkeep)
 	zval		*zid;
 	php_curl	*ch;
 
-	ZEND_PARSE_PARAMETERS_START(1, 1)
-		Z_PARAM_OBJECT_OF_CLASS(zid, curl_ce)
-	ZEND_PARSE_PARAMETERS_END();
+	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "O", &zid, curl_ce) == FAILURE) {
+		RETURN_THROWS();
+	}
 
 	ch = Z_CURL_P(zid);
 

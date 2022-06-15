@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 1bd8a84a4aa80912463ea76d08f64d3c2cf4c0db */
+ * Stub hash: ca88a2a10a0afffa89c89a166b1fe52210fe8baf */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_curl_close, 0, 1, IS_VOID, 0)
 	ZEND_ARG_OBJ_INFO(0, handle, CurlHandle, 0)
@@ -138,6 +138,47 @@ ZEND_END_ARG_INFO()
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_curl_version, 0, 0, MAY_BE_ARRAY|MAY_BE_FALSE)
 ZEND_END_ARG_INFO()
 
+ZEND_BEGIN_ARG_INFO_EX(arginfo_class_CurlHandle___construct, 0, 0, 0)
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, url, IS_STRING, 1, "null")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_CurlHandle_setOpt, 0, 2, _IS_BOOL, 0)
+	ZEND_ARG_TYPE_INFO(0, option, IS_LONG, 0)
+	ZEND_ARG_TYPE_INFO(0, value, IS_MIXED, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_CurlHandle_getInfo, 0, 0, IS_MIXED, 0)
+	ZEND_ARG_TYPE_INFO_WITH_DEFAULT_VALUE(0, option, IS_LONG, 1, "null")
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_CurlHandle_exec, 0, 0, MAY_BE_STRING|MAY_BE_BOOL)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_MASK_EX(arginfo_class_CurlHandle_escape, 0, 1, MAY_BE_STRING|MAY_BE_FALSE)
+	ZEND_ARG_TYPE_INFO(0, string, IS_STRING, 0)
+ZEND_END_ARG_INFO()
+
+#define arginfo_class_CurlHandle_unescape arginfo_class_CurlHandle_escape
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_CurlHandle_pause, 0, 1, IS_LONG, 0)
+	ZEND_ARG_TYPE_INFO(0, flags, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_CurlHandle_getErrno, 0, 0, IS_LONG, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_CurlHandle_reset, 0, 0, IS_VOID, 0)
+ZEND_END_ARG_INFO()
+
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_CurlHandle_setOptArray, 0, 1, _IS_BOOL, 0)
+	ZEND_ARG_TYPE_INFO(0, options, IS_ARRAY, 0)
+ZEND_END_ARG_INFO()
+
+#if LIBCURL_VERSION_NUM >= 0x073E00 /* Available since 7.62.0 */
+ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_class_CurlHandle_upkeep, 0, 0, _IS_BOOL, 0)
+ZEND_END_ARG_INFO()
+#endif
+
 
 ZEND_FUNCTION(curl_close);
 ZEND_FUNCTION(curl_copy_handle);
@@ -174,6 +215,7 @@ ZEND_FUNCTION(curl_share_setopt);
 ZEND_FUNCTION(curl_share_strerror);
 ZEND_FUNCTION(curl_strerror);
 ZEND_FUNCTION(curl_version);
+ZEND_METHOD(CurlHandle, __construct);
 
 
 static const zend_function_entry ext_functions[] = {
@@ -217,6 +259,19 @@ static const zend_function_entry ext_functions[] = {
 
 
 static const zend_function_entry class_CurlHandle_methods[] = {
+	ZEND_ME(CurlHandle, __construct, arginfo_class_CurlHandle___construct, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(setOpt, curl_setopt, arginfo_class_CurlHandle_setOpt, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(getInfo, curl_getinfo, arginfo_class_CurlHandle_getInfo, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(exec, curl_exec, arginfo_class_CurlHandle_exec, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(escape, curl_escape, arginfo_class_CurlHandle_escape, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(unescape, curl_unescape, arginfo_class_CurlHandle_unescape, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(pause, curl_pause, arginfo_class_CurlHandle_pause, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(getErrno, curl_errno, arginfo_class_CurlHandle_getErrno, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(reset, curl_reset, arginfo_class_CurlHandle_reset, ZEND_ACC_PUBLIC)
+	ZEND_ME_MAPPING(setOptArray, curl_setopt_array, arginfo_class_CurlHandle_setOptArray, ZEND_ACC_PUBLIC)
+#if LIBCURL_VERSION_NUM >= 0x073E00 /* Available since 7.62.0 */
+	ZEND_ME_MAPPING(upkeep, curl_upkeep, arginfo_class_CurlHandle_upkeep, ZEND_ACC_PUBLIC)
+#endif
 	ZEND_FE_END
 };
 

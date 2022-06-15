@@ -8,6 +8,39 @@
  */
 final class CurlHandle
 {
+    public function __construct(?string $url = null) {}
+
+    /** @alias curl_setopt */
+    public function setOpt(int $option, mixed $value): bool {}
+
+    /** @alias curl_getinfo */
+    public function getInfo(?int $option = null): mixed {}
+
+    /** @alias curl_exec */
+    public function exec(): string|bool {}
+
+    /** @alias curl_escape */
+    public function escape(string $string): string|false {}
+
+    /** @alias curl_unescape */
+    public function unescape(string $string): string|false {}
+
+    /** @alias curl_pause */
+    public function pause(int $flags): int {}
+
+    /** @alias curl_errno */
+    public function getErrno(): int {}
+
+    /** @alias curl_reset */
+    public function reset(): void;
+
+    /** @alias curl_setopt_array */
+    public function setOptArray(array $options): bool {}
+
+#if LIBCURL_VERSION_NUM >= 0x073E00 /* Available since 7.62.0 */
+    /** @alias curl_upkeep */
+    public function upkeep(): bool {}
+#endif
 }
 
 /**
