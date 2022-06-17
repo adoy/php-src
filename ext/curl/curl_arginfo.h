@@ -1,5 +1,5 @@
 /* This is a generated file, edit the .stub.php file instead.
- * Stub hash: 207a92a388f09d76be27da2dd094f26288be0476 */
+ * Stub hash: 1f19224f819fc1c944937253881b7d371e0b1e09 */
 
 ZEND_BEGIN_ARG_WITH_RETURN_TYPE_INFO_EX(arginfo_curl_close, 0, 1, IS_VOID, 0)
 	ZEND_ARG_OBJ_INFO(0, handle, CurlHandle, 0)
@@ -272,6 +272,11 @@ static const zend_function_entry class_CurlHandle_methods[] = {
 };
 
 
+static const zend_function_entry class_CurlException_methods[] = {
+	ZEND_FE_END
+};
+
+
 static const zend_function_entry class_CurlMultiHandle_methods[] = {
 	ZEND_FE_END
 };
@@ -288,6 +293,16 @@ static zend_class_entry *register_class_CurlHandle(void)
 	INIT_CLASS_ENTRY(ce, "CurlHandle", class_CurlHandle_methods);
 	class_entry = zend_register_internal_class_ex(&ce, NULL);
 	class_entry->ce_flags |= ZEND_ACC_FINAL|ZEND_ACC_NO_DYNAMIC_PROPERTIES|ZEND_ACC_NOT_SERIALIZABLE;
+
+	return class_entry;
+}
+
+static zend_class_entry *register_class_CurlException(zend_class_entry *class_entry_Exception)
+{
+	zend_class_entry ce, *class_entry;
+
+	INIT_CLASS_ENTRY(ce, "CurlException", class_CurlException_methods);
+	class_entry = zend_register_internal_class_ex(&ce, class_entry_Exception);
 
 	return class_entry;
 }

@@ -40,6 +40,10 @@ final class CurlHandle
 #endif
 }
 
+class CurlException extends Exception
+{
+}
+
 /**
  * @strict-properties
  * @not-serializable

@@ -218,6 +218,7 @@ ZEND_GET_MODULE (curl)
 
 zend_class_entry *curl_ce;
 zend_class_entry *curl_share_ce;
+zend_class_entry *curl_exception_ce;
 static zend_object_handlers curl_object_handlers;
 
 static zend_object *curl_create_object(zend_class_entry *class_type);
@@ -1328,6 +1329,8 @@ PHP_MINIT_FUNCTION(curl)
 
 	curl_ce = register_class_CurlHandle();
 	curl_ce->create_object = curl_create_object;
+
+	curl_exception_ce = register_class_CurlException(zend_ce_exception);
 
 	memcpy(&curl_object_handlers, &std_object_handlers, sizeof(zend_object_handlers));
 	curl_object_handlers.offset = XtOffsetOf(php_curl, std);
@@ -3314,7 +3317,7 @@ PHP_FUNCTION(curl_setopt)
 	if (ret == SUCCESS) {
 		RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
 	} else {
-		// TODO Exception
+		zend_throw_exception_ex(curl_exception_ce, ch->err.no, "Unable to set option: %s", curl_easy_strerror(ch->err.no));
 	}
 }
 /* }}} */
@@ -3344,7 +3347,7 @@ PHP_FUNCTION(curl_setopt_array)
 			if (NULL == getThis()) {
 				RETURN_FALSE;
 			} else {
-				// TODO Exception
+				zend_throw_exception_ex(curl_exception_ce, ch->err.no, "Unable to set option: %s", curl_easy_strerror(ch->err.no));
 			}
 		}
 	} ZEND_HASH_FOREACH_END();
@@ -4006,8 +4009,8 @@ PHP_FUNCTION(curl_pause)
 		RETURN_LONG(res);
 	}
 
-	if (res != SUCCESS) {
-		// TODO Exception
+	if (res != CURLE_OK) {
+		zend_throw_exception_ex(curl_exception_ce, ch->err.no, "Unable to pause: %s", curl_easy_strerror(ch->err.no));
 	}
 }
 /* }}} */
@@ -4016,7 +4019,7 @@ PHP_FUNCTION(curl_pause)
 /* {{{ perform connection upkeep checks */
 PHP_FUNCTION(curl_upkeep)
 {
-	CURLcode	error;
+	CURLcode	res;
 	zval		*zid;
 	php_curl	*ch;
 
@@ -4026,14 +4029,16 @@ PHP_FUNCTION(curl_upkeep)
 
 	ch = Z_CURL_P(zid);
 
-	error = curl_easy_upkeep(ch->cp);
-	SAVE_CURL_ERROR(ch, error);
+	res = curl_easy_upkeep(ch->cp);
+	SAVE_CURL_ERROR(ch, res);
 
 	if (NULL == getThis()) {
-		RETURN_BOOL(error == CURLE_OK);
+		RETURN_BOOL(res == CURLE_OK);
 	}
 
-	// TODO Exception
+	if (res != CURLE_OK) {
+		zend_throw_exception_ex(curl_exception_ce, ch->err.no, "Unable to perform upkeep: %s", curl_easy_strerror(ch->err.no));
+	}
 }
 /*}}} */
 #endif
