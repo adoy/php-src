@@ -21,8 +21,9 @@ $ch->setOpt(CURLOPT_URL,$url)
 
 if ($ch->exec()) {
     usleep(300);
-    var_dump($ch->upkeep());
+    $ch->upkeep();
+	echo '==DONE==';
 }
 ?>
 --EXPECT--
-bool(true)
+==DONE==

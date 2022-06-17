@@ -3993,6 +3993,7 @@ PHP_FUNCTION(curl_pause)
 	zend_long       bitmask;
 	zval       *zid;
 	php_curl   *ch;
+	CURLcode   res;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Ol", &zid, curl_ce, &bitmask) == FAILURE) {
 		RETURN_THROWS();
@@ -4000,7 +4001,14 @@ PHP_FUNCTION(curl_pause)
 
 	ch = Z_CURL_P(zid);
 
-	RETURN_LONG(curl_easy_pause(ch->cp, bitmask));
+	res = curl_easy_pause(ch->cp, bitmask);
+	if (NULL == getThis()) {
+		RETURN_LONG(res);
+	}
+
+	if (res != SUCCESS) {
+		// TODO Exception
+	}
 }
 /* }}} */
 
@@ -4021,7 +4029,11 @@ PHP_FUNCTION(curl_upkeep)
 	error = curl_easy_upkeep(ch->cp);
 	SAVE_CURL_ERROR(ch, error);
 
-	RETURN_BOOL(error == CURLE_OK);
+	if (NULL == getThis()) {
+		RETURN_BOOL(error == CURLE_OK);
+	}
+
+	// TODO Exception
 }
 /*}}} */
 #endif
