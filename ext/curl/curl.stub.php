@@ -11,7 +11,7 @@ final class CurlHandle
     public function __construct(?string $url = null) {}
 
     /** @alias curl_setopt */
-    public function setOpt(int $option, mixed $value): bool {}
+    public function setOpt(int $option, mixed $value): CurlHandle {}
 
     /** @alias curl_getinfo */
     public function getInfo(?int $option = null): mixed {}
@@ -35,7 +35,7 @@ final class CurlHandle
     public function reset(): void;
 
     /** @alias curl_setopt_array */
-    public function setOptArray(array $options): bool {}
+    public function setOptArray(array $options): CurlHandle {}
 
 #if LIBCURL_VERSION_NUM >= 0x073E00 /* Available since 7.62.0 */
     /** @alias curl_upkeep */

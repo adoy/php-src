@@ -3297,6 +3297,7 @@ PHP_FUNCTION(curl_setopt)
 	zval       *zid, *zvalue;
 	zend_long        options;
 	php_curl   *ch;
+	zend_result ret;
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Olz", &zid, curl_ce, &options, &zvalue) == FAILURE) {
 		RETURN_THROWS();
@@ -3304,10 +3305,16 @@ PHP_FUNCTION(curl_setopt)
 
 	ch = Z_CURL_P(zid);
 
-	if (_php_curl_setopt(ch, options, zvalue, 0) == SUCCESS) {
-		RETURN_TRUE;
+	ret = _php_curl_setopt(ch, options, zvalue, 0);
+
+	if (NULL == getThis()) {
+		RETURN_BOOL(ret == SUCCESS);
+	}
+
+	if (ret == SUCCESS) {
+		RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
 	} else {
-		RETURN_FALSE;
+		// TODO Exception
 	}
 }
 /* }}} */
@@ -3334,11 +3341,19 @@ PHP_FUNCTION(curl_setopt_array)
 
 		ZVAL_DEREF(entry);
 		if (_php_curl_setopt(ch, (zend_long) option, entry, 1) == FAILURE) {
-			RETURN_FALSE;
+			if (NULL == getThis()) {
+				RETURN_FALSE;
+			} else {
+				// TODO Exception
+			}
 		}
 	} ZEND_HASH_FOREACH_END();
 
-	RETURN_TRUE;
+	if (NULL == getThis()) {
+		RETURN_TRUE;
+	} else {
+		RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
+	}
 }
 /* }}} */
 
