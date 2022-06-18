@@ -1,0 +1,23 @@
+--TEST--
+CurlHandle::setOpt() with invalid int non strict
+--EXTENSIONS--
+curl
+--FILE--
+<?php
+
+try {
+	(new CurlHandle())->setOpt(CURLOPT_BUFFERSIZE, "2");
+} catch (TypeError $e) {
+	var_dump($e->getMessage());
+}
+try {
+	(new CurlHandle())->setOpt(CURLOPT_BUFFERSIZE, "OK");
+} catch (TypeError $e) {
+	var_dump($e->getMessage());
+}
+
+?>
+==DONE==
+--EXPECT--
+string(75) "Argument 2 passed to CurlHandle::setOpt() must be of type int, string given"
+==DONE==

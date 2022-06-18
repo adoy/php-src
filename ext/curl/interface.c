@@ -2528,7 +2528,31 @@ PHP_FUNCTION(curl_copy_handle)
 }
 /* }}} */
 
-static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue, bool is_array_config) /* {{{ */
+static inline void php_curl_setopt_type_failure(zend_uchar exp, zval *arg, zend_bool nullable) { /* {{{ */
+	const char *exp_of = "be of type ";
+	const char *exp_type = "";
+
+	if (IS_CALLABLE == exp) {
+		exp_of = "be callable";
+	} else if (IS_ITERABLE == exp) {
+		exp_of = "be iterable";
+	} else {
+		exp_type = zend_get_type_by_const(exp);
+	}
+
+	zend_type_error("Argument 2 passed to CurlHandle::setOpt() must %s%s%s, %s given", exp_of, (nullable ? "?": ""), exp_type, zend_zval_type_name(arg));
+}
+/* }}} */
+
+static inline zend_bool php_curl_setopt_callable(zval *arg) { /* {{{ */
+	zend_fcall_info fci;
+	zend_fcall_info_cache fcc;
+
+	return (SUCCESS == zend_fcall_info_init(arg, 0, &fci, &fcc, NULL, NULL)) ? 1 : 0;
+}
+/* }}} */
+
+static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue, bool is_procedural, bool is_array_config) /* {{{ */
 {
 	CURLcode error = CURLE_OK;
 	zend_long lval;
@@ -2627,7 +2651,16 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 		case CURLOPT_DOH_SSL_VERIFYSTATUS:
 #endif
 		{
-			lval = zend_is_true(zvalue);
+			if (is_procedural) {
+				lval = zend_is_true(zvalue);
+			} else {
+				zend_bool bval;
+				if (!zend_parse_arg_bool(zvalue, &bval, 0 /* is_null */, 0 /* check_null */, 2)) {
+					php_curl_setopt_type_failure(_IS_BOOL, zvalue, 0 /* nullable */);
+					return FAILURE;
+				}
+				lval = (zend_long) bval;
+			}
 # if defined(ZTS)
 			if (option == CURLOPT_DNS_USE_GLOBAL_CACHE && lval) {
 				php_error_docref(NULL, E_WARNING, "CURLOPT_DNS_USE_GLOBAL_CACHE cannot be activated when thread safety is enabled");
@@ -2640,13 +2673,6 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 
 		/* Long options */
 		case CURLOPT_SSL_VERIFYHOST:
-			lval = zval_get_long(zvalue);
-			if (lval == 1) {
-				php_error_docref(NULL, E_NOTICE, "CURLOPT_SSL_VERIFYHOST no longer accepts the value 1, value 2 will be used instead");
-				error = curl_easy_setopt(ch->cp, option, 2);
-				break;
-			}
-			ZEND_FALLTHROUGH;
 		case CURLOPT_BUFFERSIZE:
 		case CURLOPT_CONNECTTIMEOUT:
 		case CURLOPT_DNS_CACHE_TIMEOUT:
@@ -2734,11 +2760,20 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 		case CURLOPT_MAXLIFETIME_CONN:
 #endif
 		{
-			lval = zval_get_long(zvalue);
-			if ((option == CURLOPT_PROTOCOLS || option == CURLOPT_REDIR_PROTOCOLS) &&
+			if (is_procedural) {
+				lval = zval_get_long(zvalue);
+			} else if (!zend_parse_arg_long(zvalue, &lval, 0 /* is_null */, 0 /* check_null */, 0 /* cap */)) {
+				php_curl_setopt_type_failure(IS_LONG, zvalue, 0 /* nullable */);
+				return FAILURE;
+			}
+			if (lval == 1 && option == CURLOPT_SSL_VERIFYHOST) {
+				php_error_docref(NULL, E_NOTICE, "CURLOPT_SSL_VERIFYHOST no longer accepts the value 1, value 2 will be used instead");
+				lval = 2;
+				break;
+			} else if ((option == CURLOPT_PROTOCOLS || option == CURLOPT_REDIR_PROTOCOLS) &&
 				(PG(open_basedir) && *PG(open_basedir)) && (lval & CURLPROTO_FILE)) {
-					php_error_docref(NULL, E_WARNING, "CURLPROTO_FILE cannot be activated when an open_basedir is set");
-					return FAILURE;
+				php_error_docref(NULL, E_WARNING, "CURLPROTO_FILE cannot be activated when an open_basedir is set");
+				return FAILURE;
 			}
 			error = curl_easy_setopt(ch->cp, option, lval);
 			break;
@@ -2849,10 +2884,19 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 #endif
 		{
 			zend_string *tmp_str;
-			zend_string *str = zval_get_tmp_string(zvalue, &tmp_str);
-			zend_result ret = php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
-			zend_tmp_string_release(tmp_str);
-			return ret;
+			zend_string *str;
+			if (is_procedural) {
+				str = zval_get_tmp_string(zvalue, &tmp_str);
+				zend_result ret = php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
+				zend_tmp_string_release(tmp_str);
+				return ret;
+			} else {
+				if (!zend_parse_arg_str(zvalue, &str, 0 /* check_null */, 2)) {
+					php_curl_setopt_type_failure(IS_STRING, zvalue, 0 /* nullable */);
+					return FAILURE;
+				}
+				return php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
+			}
 		}
 
 		/* Curl nullable string options */
@@ -2882,10 +2926,19 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 				error = curl_easy_setopt(ch->cp, option, NULL);
 			} else {
 				zend_string *tmp_str;
-				zend_string *str = zval_get_tmp_string(zvalue, &tmp_str);
-				zend_result ret = php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
-				zend_tmp_string_release(tmp_str);
-				return ret;
+				zend_string *str;
+				if (is_procedural) {
+					str = zval_get_tmp_string(zvalue, &tmp_str);
+					zend_result ret = php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
+					zend_tmp_string_release(tmp_str);
+					return ret;
+				} else {
+					if (!zend_parse_arg_str(zvalue, &str, 0 /* check_null */, 2)) {
+						php_curl_setopt_type_failure(IS_STRING, zvalue, 1 /* nullable */);
+						return FAILURE;
+					}
+					return php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
+				}
 			}
 			break;
 		}
@@ -2902,10 +2955,19 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 		case CURLOPT_URL:
 		{
 			zend_string *tmp_str;
-			zend_string *str = zval_get_tmp_string(zvalue, &tmp_str);
-			zend_result ret = php_curl_option_url(ch, ZSTR_VAL(str), ZSTR_LEN(str));
-			zend_tmp_string_release(tmp_str);
-			return ret;
+			zend_string *str;
+			if (is_procedural) {
+				str = zval_get_tmp_string(zvalue, &tmp_str);
+				zend_result ret = php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
+				zend_tmp_string_release(tmp_str);
+				return ret;
+			} else {
+				if (!zend_parse_arg_str(zvalue, &str, 0 /* check_null */, 2)) {
+					php_curl_setopt_type_failure(IS_STRING, zvalue, 0 /* nullable */);
+					return FAILURE;
+				}
+				return php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
+			}
 		}
 
 		/* Curl file handle options */
@@ -3296,12 +3358,13 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 			} else {
 				zend_argument_value_error(2, "is not a valid cURL option");
 			}
-			error = CURLE_UNKNOWN_OPTION;
-			break;
+			SAVE_CURL_ERROR(ch, CURLE_UNKNOWN_OPTION);
+			return FAILURE;
 	}
 
 	SAVE_CURL_ERROR(ch, error);
 	if (error != CURLE_OK) {
+		zend_throw_exception_ex(curl_exception_ce, ch->err.no, "Unable to set option: %s", curl_easy_strerror(ch->err.no));
 		return FAILURE;
 	} else {
 		return SUCCESS;
@@ -3316,6 +3379,7 @@ PHP_FUNCTION(curl_setopt)
 	zend_long        options;
 	php_curl   *ch;
 	zend_result ret;
+	zend_bool is_procedural = (NULL == getThis());
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Olz", &zid, curl_ce, &options, &zvalue) == FAILURE) {
 		RETURN_THROWS();
@@ -3323,16 +3387,14 @@ PHP_FUNCTION(curl_setopt)
 
 	ch = Z_CURL_P(zid);
 
-	ret = _php_curl_setopt(ch, options, zvalue, 0);
+	ret = _php_curl_setopt(ch, options, zvalue, is_procedural, 0);
 
-	if (NULL == getThis()) {
+	if (is_procedural) {
 		RETURN_BOOL(ret == SUCCESS);
 	}
 
 	if (ret == SUCCESS) {
 		RETURN_OBJ_COPY(Z_OBJ_P(ZEND_THIS));
-	} else {
-		zend_throw_exception_ex(curl_exception_ce, ch->err.no, "Unable to set option: %s", curl_easy_strerror(ch->err.no));
 	}
 }
 /* }}} */
@@ -3344,6 +3406,7 @@ PHP_FUNCTION(curl_setopt_array)
 	php_curl	*ch;
 	zend_ulong	option;
 	zend_string	*string_key;
+	zend_bool is_procedural = (NULL == getThis());
 
 	if (zend_parse_method_parameters(ZEND_NUM_ARGS(), getThis(), "Oa", &zid, curl_ce, &arr) == FAILURE) {
 		RETURN_THROWS();
@@ -3358,8 +3421,8 @@ PHP_FUNCTION(curl_setopt_array)
 		}
 
 		ZVAL_DEREF(entry);
-		if (_php_curl_setopt(ch, (zend_long) option, entry, 1) == FAILURE) {
-			if (NULL == getThis()) {
+		if (_php_curl_setopt(ch, (zend_long) option, entry, is_procedural, 1) == FAILURE) {
+			if (is_procedural) {
 				RETURN_FALSE;
 			} else {
 				zend_throw_exception_ex(curl_exception_ce, ch->err.no, "Unable to set option: %s", curl_easy_strerror(ch->err.no));
