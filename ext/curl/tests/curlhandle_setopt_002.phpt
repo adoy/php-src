@@ -16,5 +16,5 @@ try {
 ?>
 ==DONE==
 --EXPECT--
-string(73) "Argument 2 passed to CurlHandle::setOpt() must be of type bool, int given"
+string(100) "Argument 2 passed to CurlHandle::setOpt() for option CURLOPT_VERBOSE must be of type bool, int given"
 ==DONE==

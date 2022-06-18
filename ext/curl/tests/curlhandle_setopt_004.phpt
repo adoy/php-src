@@ -21,6 +21,6 @@ try {
 ?>
 ==DONE==
 --EXPECT--
-string(75) "Argument 2 passed to CurlHandle::setOpt() must be of type int, string given"
-string(75) "Argument 2 passed to CurlHandle::setOpt() must be of type int, string given"
+string(105) "Argument 2 passed to CurlHandle::setOpt() for option CURLOPT_BUFFERSIZE must be of type int, string given"
+string(105) "Argument 2 passed to CurlHandle::setOpt() for option CURLOPT_BUFFERSIZE must be of type int, string given"
 ==DONE==

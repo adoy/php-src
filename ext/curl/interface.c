@@ -2528,19 +2528,28 @@ PHP_FUNCTION(curl_copy_handle)
 }
 /* }}} */
 
-static inline void php_curl_setopt_type_failure(zend_uchar exp, zval *arg, zend_bool nullable) { /* {{{ */
+static inline void php_curl_setopt_type_failure(zend_long option, zend_uchar exp, zval *arg, zend_bool nullable) { /* {{{ */
 	const char *exp_of = "be of type ";
 	const char *exp_type = "";
+	zend_constant *constant;
 
 	if (IS_CALLABLE == exp) {
 		exp_of = "be callable";
-	} else if (IS_ITERABLE == exp) {
-		exp_of = "be iterable";
 	} else {
 		exp_type = zend_get_type_by_const(exp);
 	}
 
-	zend_type_error("Argument 2 passed to CurlHandle::setOpt() must %s%s%s, %s given", exp_of, (nullable ? "?": ""), exp_type, zend_zval_type_name(arg));
+	ZEND_HASH_MAP_FOREACH_PTR(EG(zend_constants), constant) {
+		if (curl_module_entry.module_number == ZEND_CONSTANT_MODULE_NUMBER(constant) &&
+			Z_TYPE(constant->value) == IS_LONG &&
+			Z_LVAL(constant->value) == option && 
+			0 == strncmp(ZSTR_VAL(constant->name), "CURLOPT_", sizeof("CURLOPT_")-1)
+		) {
+			break;
+		}
+	} ZEND_HASH_FOREACH_END();
+
+	zend_type_error("Argument 2 passed to CurlHandle::setOpt() for option %s must %s%s%s, %s given", ZSTR_VAL(constant->name), exp_of, (nullable ? "?": ""), exp_type, zend_zval_type_name(arg));
 }
 /* }}} */
 
@@ -2656,7 +2665,7 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 			} else {
 				zend_bool bval;
 				if (!zend_parse_arg_bool(zvalue, &bval, 0 /* is_null */, 0 /* check_null */, 2)) {
-					php_curl_setopt_type_failure(_IS_BOOL, zvalue, 0 /* nullable */);
+					php_curl_setopt_type_failure(option, _IS_BOOL, zvalue, 0 /* nullable */);
 					return FAILURE;
 				}
 				lval = (zend_long) bval;
@@ -2763,7 +2772,7 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 			if (is_procedural) {
 				lval = zval_get_long(zvalue);
 			} else if (!zend_parse_arg_long(zvalue, &lval, 0 /* is_null */, 0 /* check_null */, 0 /* cap */)) {
-				php_curl_setopt_type_failure(IS_LONG, zvalue, 0 /* nullable */);
+				php_curl_setopt_type_failure(option, IS_LONG, zvalue, 0 /* nullable */);
 				return FAILURE;
 			}
 			if (lval == 1 && option == CURLOPT_SSL_VERIFYHOST) {
@@ -2892,7 +2901,7 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 				return ret;
 			} else {
 				if (!zend_parse_arg_str(zvalue, &str, 0 /* check_null */, 2)) {
-					php_curl_setopt_type_failure(IS_STRING, zvalue, 0 /* nullable */);
+					php_curl_setopt_type_failure(option, IS_STRING, zvalue, 0 /* nullable */);
 					return FAILURE;
 				}
 				return php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
@@ -2934,7 +2943,7 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 					return ret;
 				} else {
 					if (!zend_parse_arg_str(zvalue, &str, 0 /* check_null */, 2)) {
-						php_curl_setopt_type_failure(IS_STRING, zvalue, 1 /* nullable */);
+						php_curl_setopt_type_failure(option, IS_STRING, zvalue, 1 /* nullable */);
 						return FAILURE;
 					}
 					return php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
@@ -2963,7 +2972,7 @@ static zend_result _php_curl_setopt(php_curl *ch, zend_long option, zval *zvalue
 				return ret;
 			} else {
 				if (!zend_parse_arg_str(zvalue, &str, 0 /* check_null */, 2)) {
-					php_curl_setopt_type_failure(IS_STRING, zvalue, 0 /* nullable */);
+					php_curl_setopt_type_failure(option, IS_STRING, zvalue, 0 /* nullable */);
 					return FAILURE;
 				}
 				return php_curl_option_str(ch, option, ZSTR_VAL(str), ZSTR_LEN(str));
