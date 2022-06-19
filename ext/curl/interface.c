@@ -2032,7 +2032,7 @@ static void _php_curl_set_default_options(php_curl *ch)
 }
 /* }}} */
 
-static void _php_curl_init(INTERNAL_FUNCTION_PARAMETERS)
+static void _php_curl_init(INTERNAL_FUNCTION_PARAMETERS, zend_bool is_procedural)
 {
 	php_curl *ch;
 	CURL 	 *cp;
@@ -2055,7 +2055,7 @@ static void _php_curl_init(INTERNAL_FUNCTION_PARAMETERS)
 
 	ch->cp = cp;
 
-	ch->handlers.write->method = PHP_CURL_STDOUT;
+	ch->handlers.write->method = is_procedural ? PHP_CURL_STDOUT : PHP_CURL_RETURN;
 	ch->handlers.read->method  = PHP_CURL_DIRECT;
 	ch->handlers.write_header->method = PHP_CURL_IGNORE;
 
@@ -2073,13 +2073,13 @@ static void _php_curl_init(INTERNAL_FUNCTION_PARAMETERS)
 PHP_METHOD(CurlHandle, __construct)
 {
 	return_value = ZEND_THIS;
-	_php_curl_init(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	_php_curl_init(INTERNAL_FUNCTION_PARAM_PASSTHRU, false /* is_procedural */);
 }
 
 PHP_FUNCTION(curl_init)
 {
 	object_init_ex(return_value, curl_ce);
-	_php_curl_init(INTERNAL_FUNCTION_PARAM_PASSTHRU);
+	_php_curl_init(INTERNAL_FUNCTION_PARAM_PASSTHRU, true /* is_procedural */);
 }
 /* }}} */
 
