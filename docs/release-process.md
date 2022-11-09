@@ -140,8 +140,9 @@ slightly different steps. We'll call attention where the steps differ.
    > git checkout -b php-X.Y.0beta2-local-release-branch upstream/PHP-X.Y
    > ```
 
-   > 🔷 **Non-stable version branches: post-GA** \
-   > After GA, you will create (and push) a new *patch-level version branch*
+   > 🔷 **Non-stable version branches: last RC releases pre/post-GA** \
+   > Before packaging the last RC release of each version (minor and bugfix),
+   > you will create (and push) a new *patch-level version branch*
    > along with each non-stable release. For example, if you are building a
    > release for PHP 8.2.8 RC1, you will create the `PHP-8.2.8` patch-level
    > version branch from the `PHP-8.2` version branch.
